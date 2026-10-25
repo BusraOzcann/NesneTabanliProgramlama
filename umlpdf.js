@@ -13,7 +13,7 @@ window.NYPPdf = (function () {
   const STUDENT_KEY = 'nyp-ogrenci';
   const F = { body: "'Nunito', 'Segoe UI', sans-serif", mono: "'JetBrains Mono', Consolas, monospace", disp: "'Baloo 2', 'Segoe UI', sans-serif" };
   const INK = '#2D2A4A';
-  const HEAD = { class: '#EEF3FF', abstract: '#F1EBFF', interface: '#E6F6EE' };
+  const HEAD = { class: '#EEF3FF', abstract: '#F1EBFF', interface: '#E6F6EE', enumeration: '#FFF4D2' };
 
   /* ---------------- ortak geometri (ekrandaki çizim de bunu kullanır) ---------------- */
   function exitPt(r, p, dx, dy) {
@@ -88,7 +88,7 @@ window.NYPPdf = (function () {
     c.attrs.concat(c.meths).forEach(l => { w = Math.max(w, ctx.measureText(l.text).width); });
     const hh = PAD * 2 + 20 + (c.stereo ? 17 : 0);
     const ah = c.attrs.length ? c.attrs.length * LH + 10 : 16;
-    const mh = c.meths.length ? c.meths.length * LH + 10 : 16;
+    const mh = c.meths.length ? c.meths.length * LH + 10 : c.stereo === 'enumeration' ? 0 : 16;
     return { w: Math.max(150, Math.ceil(w) + PAD * 2 + 4), h: hh + ah + mh, hh, ah, LH, PAD };
   }
 
@@ -96,12 +96,12 @@ window.NYPPdf = (function () {
     ctx.save();
     ctx.fillStyle = '#fff'; ctx.strokeStyle = INK; ctx.lineWidth = 2;
     ctx.fillRect(r.x, r.y, r.w, r.h);
-    ctx.fillStyle = HEAD[c.stereo === 'interface' ? 'interface' : c.abstract ? 'abstract' : 'class'];
+    ctx.fillStyle = HEAD[c.stereo === 'interface' ? 'interface' : c.stereo === 'enumeration' ? 'enumeration' : c.abstract ? 'abstract' : 'class'];
     ctx.fillRect(r.x, r.y, r.w, m.hh);
     ctx.strokeRect(r.x, r.y, r.w, r.h);
     ctx.beginPath();
     ctx.moveTo(r.x, r.y + m.hh); ctx.lineTo(r.x + r.w, r.y + m.hh);
-    ctx.moveTo(r.x, r.y + m.hh + m.ah); ctx.lineTo(r.x + r.w, r.y + m.hh + m.ah);
+    if (m.hh + m.ah < r.h) { ctx.moveTo(r.x, r.y + m.hh + m.ah); ctx.lineTo(r.x + r.w, r.y + m.hh + m.ah); }
     ctx.stroke();
     ctx.fillStyle = INK; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     let y = r.y + m.PAD + 9;
@@ -163,6 +163,7 @@ window.NYPPdf = (function () {
     ctx.fillStyle = INK; ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
     ctx.font = `800 34px ${F.disp}`; ctx.fillText(title || meta.title, 60, 74);
     ctx.font = `700 17px ${F.body}`; ctx.fillStyle = '#5B5875'; ctx.fillText(sub, 60, 100);
+    if (meta.plain) { ctx.fillStyle = '#E2DDF2'; ctx.fillRect(60, 122, W - 120, 3); return; }
     ctx.textAlign = 'right'; ctx.fillStyle = INK; ctx.font = `700 17px ${F.body}`;
     ctx.fillText(meta.student.name ? 'Ad Soyad: ' + meta.student.name : 'Ad Soyad: ……………………', W - 60, 66);
     ctx.fillText(meta.student.no ? 'Numara: ' + meta.student.no : 'Numara: …………', W - 60, 90);
@@ -234,6 +235,48 @@ window.NYPPdf = (function () {
     return pages;
   }
 
+  // Sahne sayfası (6. hafta): SVG resmi + altında hikâye metni
+  function svgImage(svg) {
+    return new Promise((res, rej) => {
+      const img = new Image();
+      img.onload = () => res(img);
+      img.onerror = () => rej(new Error('sahne çizilemedi'));
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    });
+  }
+  function wrapLines(ctx, text, maxW) {
+    const out = []; let cur = '';
+    String(text).split(/\s+/).forEach(w => {
+      const t = cur ? cur + ' ' + w : w;
+      if (ctx.measureText(t).width > maxW && cur) { out.push(cur); cur = w; } else cur = t;
+    });
+    if (cur) out.push(cur);
+    return out;
+  }
+  async function scenePage(meta) {
+    const sc = meta.scene, W = 1754, H = 1240;
+    const { cv, ctx } = pageCanvas(W, H);
+    header(ctx, W, meta, `${meta.week} · ${sc.title || 'Sahne'}`, meta.title.replace(/ · UML.*$/, '') + ' · Sahne');
+    let y = 150;
+    try {
+      const img = await svgImage(sc.svg);
+      const iw = W - 120, ih = Math.round(iw * (img.height / img.width || 0.5));
+      const h = Math.min(ih, 760), w = Math.round(h * (img.width / img.height || 2));
+      const x = (W - w) / 2;
+      ctx.drawImage(img, x, y, w, h);
+      ctx.strokeStyle = INK; ctx.lineWidth = 3; ctx.strokeRect(x, y, w, h);
+      y += h + 44;
+    } catch (_) { y += 20; }
+    if (sc.story && sc.story.length) {
+      ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = INK;
+      ctx.font = `800 24px ${F.disp}`; ctx.fillText('Mahallenin hikâyesi', 60, y); y += 34;
+      ctx.font = `600 19px ${F.body}`;
+      wrapLines(ctx, sc.story.join(' '), W - 120).forEach(l => { if (y < H - 70) { ctx.fillText(l, 60, y); y += 28; } });
+    }
+    footer(ctx, W, H, 'NYP Atölyesi · ' + meta.week + ' · Sahne');
+    return { cv, orient: 'landscape' };
+  }
+
   /* ---------------- öğrenci bilgisi penceresi ---------------- */
   function getStudent() { try { return JSON.parse(localStorage.getItem(STUDENT_KEY)) || {}; } catch (_) { return {}; } }
   function setStudent(s) { try { localStorage.setItem(STUDENT_KEY, JSON.stringify(s)); } catch (_) { /* yok */ } }
@@ -275,12 +318,15 @@ window.NYPPdf = (function () {
   /* ---------------- dışa aktar ---------------- */
   async function exportUML(model) {
     if (!model.classes.length) return { ok: false, msg: 'Diyagramda hiç sınıf yok.' };
-    const who = await ask(!!(model.code && model.code.trim()));
+    // plain: öğrenci bilgisi sorulmaz ve sayfalara ad, numara ya da tarih yazılmaz (6. hafta)
+    const hasCode = !!(model.code && model.code.trim());
+    const who = model.plain ? { name: '', no: '', code: hasCode } : await ask(hasCode);
     if (!who) return { ok: false, cancelled: true };
     try { await Promise.all([document.fonts.load(`13px ${F.mono}`), document.fonts.load(`800 17px ${F.body}`), document.fonts.load(`800 34px ${F.disp}`)]); } catch (_) { /* yedek font */ }
     const meta = Object.assign({}, model, { student: who });
     const pages = [diagramPage(meta)].concat(who.code ? codePages(meta) : []);
-    const base = `${model.filename || 'uml'}-${slug(who.name)}`;
+    if (model.scene && model.scene.svg) pages.push(await scenePage(meta));
+    const base = model.plain ? (model.filename || 'uml') : `${model.filename || 'uml'}-${slug(who.name)}`;
     try {
       const JsPDF = await loadLib();
       const doc = new JsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
@@ -289,7 +335,7 @@ window.NYPPdf = (function () {
         const [w, h] = p.orient === 'landscape' ? [297, 210] : [210, 297];
         doc.addImage(p.cv.toDataURL('image/jpeg', 0.93), 'JPEG', 0, 0, w, h);
       });
-      doc.setProperties({ title: `${model.title} — ${who.name || ''}`, subject: model.week, creator: 'NYP Atölyesi' });
+      doc.setProperties({ title: model.plain ? model.title : `${model.title} — ${who.name || ''}`, subject: model.week, creator: 'NYP Atölyesi' });
       doc.save(base + '.pdf');
       return { ok: true, pdf: true };
     } catch (_) {

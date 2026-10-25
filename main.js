@@ -4,11 +4,12 @@
 (function () {
   'use strict';
 
-  const CURRENT_WEEK = 5;
+  const CURRENT_WEEK = 6;
   const TOTAL_WEEKS = 14;
   const SIMS = {
     4: { screen: 'screen-w4', title: 'UML · Dino Vadisi', mount: el => window.Hafta4.mount(el), refresh: () => window.Hafta4.refresh() },
-    5: { screen: 'screen-w5', title: 'İlişkiler · Vize Zindanı', mount: el => window.Hafta5.mount(el), refresh: () => window.Hafta5.refresh() }
+    5: { screen: 'screen-w5', title: 'İlişkiler · Vize Zindanı', mount: el => window.Hafta5.mount(el), refresh: () => window.Hafta5.refresh() },
+    6: { screen: 'screen-w6', title: 'Enum · Masal Mahallesi', mount: el => window.Hafta6.mount(el), refresh: () => window.Hafta6.refresh() }
   };
 
   const screens = () => Array.from(document.querySelectorAll('#screen-home, [id^="screen-w"]'));
@@ -51,9 +52,9 @@
 
   window.NYP = { home, openWeek };
   renderWeeks();
-  document.getElementById('go-w5').addEventListener('click', () => openWeek(5));
-  const art = document.getElementById('hero-art-w5');
-  if (art && window.Hafta5) art.innerHTML = window.Hafta5.heroArt();
+  document.getElementById('go-w6').addEventListener('click', () => openWeek(6));
+  const art = document.getElementById('hero-art-w6');
+  if (art && window.Hafta6) art.innerHTML = window.Hafta6.heroArt();
   function route() {
     const m = /^#hafta(\d+)$/.exec(location.hash);
     if (m && SIMS[+m[1]]) openWeek(+m[1]);

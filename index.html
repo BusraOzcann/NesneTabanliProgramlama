@@ -6,9 +6,10 @@
 <title>NYP Atölyesi</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=JetBrains+Mono:wght@400;600&family=Nunito:wght@400;600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Fredoka:wght@500;600&family=JetBrains+Mono:wght@400;600&family=Nunito:wght@400;600;700;800&display=swap">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="hafta5.css">
+<link rel="stylesheet" href="hafta6.css?v=6.1">
 </head>
 <body>
 
@@ -22,27 +23,27 @@
     </div>
   </div>
 
-  <div class="hero hero-w5">
+  <div class="hero hero-w6">
     <div>
-      <span class="eyebrow">Bu hafta · 5. Hafta</span>
-      <h2>İlişkiler, Kalıtım ve Arayüz: <span>Vize Zindanı</span></h2>
-      <p>Sınav canavarlarıyla savaşan bir lonca tasarla. UML'yi kendin yaz, ilişkilerin türüne ve çokluklarına sen karar ver, sonra Python kodunu da kendin yaz ve kahramanlarını Bütünleme Ejderhası'na karşı arenaya sal.</p>
+      <span class="eyebrow">Bu hafta · 6. Hafta</span>
+      <h2>Enum, Sınıf ve Nesne: <span>Masal Mahallesi</span></h2>
+      <p>Renkleri ve çatıları enum ile tanımla, Ev sınıfını UML'de çiz, Python'da yaz. Her nesne ürettiğinde gri kalıp ev, verdiğin değerlerle canlanıyor. Sonunda mahallen mevsimiyle birlikte sahneye çıkıyor.</p>
       <div class="hero-facts">
         <div><b>3</b>aşama</div>
-        <div><b>10</b>sınıf</div>
-        <div><b>5</b>seviye</div>
-        <div><b>30</b>görev</div>
+        <div><b>3</b>enum</div>
+        <div><b>3</b>sınıf</div>
+        <div><b>15</b>görev</div>
       </div>
-      <button class="btn lava big" id="go-w5">5. Hafta Simülasyonu ▶</button>
+      <button class="btn lava big" id="go-w6">6. Hafta Simülasyonu ▶</button>
     </div>
-    <div class="hero-art" id="hero-art-w5" aria-hidden="true"></div>
+    <div class="hero-art" id="hero-art-w6" aria-hidden="true"></div>
   </div>
 
   <div class="weeks">
     <h3>Dönem planı</h3>
     <div class="week-grid" id="week-grid"></div>
   </div>
-  <p class="home-foot">Sayfa yenilense de kaldığın yerden devam edersin. 5. haftada uygulamayı (sekmeyi) kapatırsan çalışman silinir; dersi tek oturumda bitir.</p>
+  <p class="home-foot">Sayfa yenilense de kaldığın yerden devam edersin. 5. ve 6. haftada uygulamayı (sekmeyi) kapatırsan çalışman silinir; dersi tek oturumda bitir.</p>
 </section>
 
 <!-- ============ 4. HAFTA ============ -->
@@ -51,10 +52,15 @@
 <!-- ============ 5. HAFTA ============ -->
 <section class="w5" id="screen-w5" hidden></section>
 
-<script src="umlpdf.js"></script>
+<!-- ============ 6. HAFTA ============ -->
+<section class="w6" id="screen-w6" hidden></section>
+
+<script src="umlpdf.js?v=6.1"></script>
 <script src="hafta4.js"></script>
 <script src="hafta5-py.js"></script>
 <script src="hafta5.js"></script>
-<script src="main.js"></script>
+<script src="hafta6-py.js?v=6.3"></script>
+<script src="hafta6.js?v=6.1"></script>
+<script src="main.js?v=6.1"></script>
 </body>
 </html>
