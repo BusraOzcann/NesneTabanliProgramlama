@@ -256,7 +256,7 @@ window.NYPPdf = (function () {
   async function scenePage(meta) {
     const sc = meta.scene, W = 1754, H = 1240;
     const { cv, ctx } = pageCanvas(W, H);
-    header(ctx, W, meta, `${meta.week} · ${sc.title || 'Sahne'}`, meta.title.replace(/ · UML.*$/, '') + ' · Sahne');
+    header(ctx, W, meta, `${meta.week} · ${sc.title || 'Sahne'}`, meta.title.replace(/ · UML.*$/, '') + ' · ' + (sc.pageTitle || 'Sahne'));
     let y = 150;
     try {
       const img = await svgImage(sc.svg);
@@ -269,17 +269,51 @@ window.NYPPdf = (function () {
     } catch (_) { y += 20; }
     if (sc.story && sc.story.length) {
       ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = INK;
-      ctx.font = `800 24px ${F.disp}`; ctx.fillText('Mahallenin hikâyesi', 60, y); y += 34;
+      ctx.font = `800 24px ${F.disp}`; ctx.fillText(sc.heading || 'Mahallenin hikâyesi', 60, y); y += 34;
       ctx.font = `600 19px ${F.body}`;
       wrapLines(ctx, sc.story.join(' '), W - 120).forEach(l => { if (y < H - 70) { ctx.fillText(l, 60, y); y += 28; } });
     }
-    footer(ctx, W, H, 'NYP Atölyesi · ' + meta.week + ' · Sahne');
+    footer(ctx, W, H, 'NYP Atölyesi · ' + meta.week + ' · ' + (sc.pageTitle || 'Sahne'));
     return { cv, orient: 'landscape' };
   }
 
   /* ---------------- öğrenci bilgisi penceresi ---------------- */
   function getStudent() { try { return JSON.parse(localStorage.getItem(STUDENT_KEY)) || {}; } catch (_) { return {}; } }
   function setStudent(s) { try { localStorage.setItem(STUDENT_KEY, JSON.stringify(s)); } catch (_) { /* yok */ } }
+
+  // Zorunlu kimlik penceresi (7. hafta): ad, soyad, okul no boş geçilemez. Ortak lab bilgisayarında
+  // bir önceki öğrencinin adı görünmesin diye bilgiler yalnızca bu sekmede hatırlanır.
+  function askRequired() {
+    return new Promise(resolve => {
+      let st = {};
+      try { st = JSON.parse(sessionStorage.getItem(STUDENT_KEY)) || {}; } catch (_) { /* yok */ }
+      const ov = document.createElement('div');
+      ov.className = 'modal'; ov.style.zIndex = 1300;
+      ov.innerHTML = `<div class="modal-card pdf-card" role="dialog" aria-modal="true">
+        <h3>📄 PDF çıktısı</h3>
+        <p>Bu bilgiler PDF'in her sayfasının başına yazılır.</p>
+        <label class="pdf-f"><span>Ad</span><input id="pdf-ad" value="${esc(st.ad || '')}" autocomplete="given-name"></label>
+        <label class="pdf-f"><span>Soyad</span><input id="pdf-soyad" value="${esc(st.soyad || '')}" autocomplete="family-name"></label>
+        <label class="pdf-f"><span>Okul No</span><input id="pdf-no" value="${esc(st.no || '')}" inputmode="numeric" autocomplete="off"></label>
+        <p class="pdf-err" id="pdf-err" hidden></p>
+        <div class="row"><button class="btn" data-x="0">Vazgeç</button><button class="btn lava" data-x="1">PDF indir</button></div></div>`;
+      document.body.appendChild(ov);
+      const val = id => ov.querySelector(id).value.trim();
+      const close = r => { ov.remove(); document.removeEventListener('keydown', key, true); resolve(r); };
+      const submit = () => {
+        const ad = val('#pdf-ad'), soyad = val('#pdf-soyad'), no = val('#pdf-no');
+        const msg = !ad ? 'Adını yaz.' : !soyad ? 'Soyadını yaz.' : !/^\d{3,15}$/.test(no) ? 'Okul numaran yalnızca rakamlardan oluşmalı.' : '';
+        const er = ov.querySelector('#pdf-err');
+        if (msg) { er.textContent = msg; er.hidden = false; return; }
+        try { sessionStorage.setItem(STUDENT_KEY, JSON.stringify({ ad, soyad, no })); } catch (_) { /* yok */ }
+        close({ name: ad + ' ' + soyad, no, code: true });
+      };
+      const key = e => { if (e.key === 'Escape') { e.stopPropagation(); close(null); } if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); submit(); } };
+      document.addEventListener('keydown', key, true);
+      ov.addEventListener('click', e => { const b = e.target.closest('[data-x]'); if (b) { if (b.dataset.x === '1') submit(); else close(null); } else if (e.target === ov) close(null); });
+      ov.querySelector(val('#pdf-ad') ? '#pdf-no' : '#pdf-ad').focus();
+    });
+  }
 
   function ask(hasCode) {
     return new Promise(resolve => {
@@ -320,13 +354,13 @@ window.NYPPdf = (function () {
     if (!model.classes.length) return { ok: false, msg: 'Diyagramda hiç sınıf yok.' };
     // plain: öğrenci bilgisi sorulmaz ve sayfalara ad, numara ya da tarih yazılmaz (6. hafta)
     const hasCode = !!(model.code && model.code.trim());
-    const who = model.plain ? { name: '', no: '', code: hasCode } : await ask(hasCode);
+    const who = model.plain ? { name: '', no: '', code: hasCode } : model.require ? await askRequired() : await ask(hasCode);
     if (!who) return { ok: false, cancelled: true };
     try { await Promise.all([document.fonts.load(`13px ${F.mono}`), document.fonts.load(`800 17px ${F.body}`), document.fonts.load(`800 34px ${F.disp}`)]); } catch (_) { /* yedek font */ }
     const meta = Object.assign({}, model, { student: who });
     const pages = [diagramPage(meta)].concat(who.code ? codePages(meta) : []);
     if (model.scene && model.scene.svg) pages.push(await scenePage(meta));
-    const base = model.plain ? (model.filename || 'uml') : `${model.filename || 'uml'}-${slug(who.name)}`;
+    const base = model.plain ? (model.filename || 'uml') : model.require ? `${who.no}-${slug(who.name)}-${model.filename || 'uml'}` : `${model.filename || 'uml'}-${slug(who.name)}`;
     try {
       const JsPDF = await loadLib();
       const doc = new JsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
