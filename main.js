@@ -4,13 +4,14 @@
 (function () {
   'use strict';
 
-  const CURRENT_WEEK = 7;
+  const CURRENT_WEEK = 8;
   const TOTAL_WEEKS = 14;
   const SIMS = {
     4: { screen: 'screen-w4', title: 'UML · Dino Vadisi', mount: el => window.Hafta4.mount(el), refresh: () => window.Hafta4.refresh() },
     5: { screen: 'screen-w5', title: 'İlişkiler · Vize Zindanı', mount: el => window.Hafta5.mount(el), refresh: () => window.Hafta5.refresh() },
     6: { screen: 'screen-w6', title: 'Enum · Masal Mahallesi', mount: el => window.Hafta6.mount(el), refresh: () => window.Hafta6.refresh() },
-    7: { screen: 'screen-w7', title: 'Çok Biçimlilik · Kantin Express', mount: el => window.Hafta7.mount(el), refresh: () => window.Hafta7.refresh() }
+    7: { screen: 'screen-w7', title: 'Çok Biçimlilik · Kantin Express', mount: el => window.Hafta7.mount(el), refresh: () => window.Hafta7.refresh() },
+    8: { screen: 'screen-w8', title: 'OOP + UML · Kronos Ajansı', mount: el => window.Hafta8.mount(el), refresh: () => window.Hafta8.refresh() }
   };
 
   const screens = () => Array.from(document.querySelectorAll('#screen-home, [id^="screen-w"]'));
@@ -53,9 +54,9 @@
 
   window.NYP = { home, openWeek };
   renderWeeks();
-  document.getElementById('go-w7').addEventListener('click', () => openWeek(7));
-  const art = document.getElementById('hero-art-w7');
-  if (art && window.Hafta7) art.innerHTML = window.Hafta7.heroArt();
+  document.getElementById('go-w8').addEventListener('click', () => openWeek(8));
+  const art = document.getElementById('hero-art-w8');
+  if (art && window.Hafta8) art.innerHTML = window.Hafta8.heroArt();
   function route() {
     const m = /^#hafta(\d+)$/.exec(location.hash);
     if (m && SIMS[+m[1]]) openWeek(+m[1]);

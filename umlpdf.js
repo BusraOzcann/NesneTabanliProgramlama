@@ -253,13 +253,15 @@ window.NYPPdf = (function () {
     if (cur) out.push(cur);
     return out;
   }
-  async function scenePage(meta) {
-    const sc = meta.scene, W = 1754, H = 1240;
+  // sc.svg (6. hafta) ya da sc.img: hazır resim adresi (8. hafta: 3D ekran görüntüsü)
+  async function scenePage(meta, sc) {
+    sc = sc || meta.scene;
+    const W = 1754, H = 1240;
     const { cv, ctx } = pageCanvas(W, H);
     header(ctx, W, meta, `${meta.week} · ${sc.title || 'Sahne'}`, meta.title.replace(/ · UML.*$/, '') + ' · ' + (sc.pageTitle || 'Sahne'));
     let y = 150;
     try {
-      const img = await svgImage(sc.svg);
+      const img = sc.img ? await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = sc.img; }) : await svgImage(sc.svg);
       const iw = W - 120, ih = Math.round(iw * (img.height / img.width || 0.5));
       const h = Math.min(ih, 760), w = Math.round(h * (img.width / img.height || 2));
       const x = (W - w) / 2;
@@ -360,6 +362,7 @@ window.NYPPdf = (function () {
     const meta = Object.assign({}, model, { student: who });
     const pages = [diagramPage(meta)].concat(who.code ? codePages(meta) : []);
     if (model.scene && model.scene.svg) pages.push(await scenePage(meta));
+    for (const sc of model.scenes || []) if (sc && (sc.img || sc.svg)) pages.push(await scenePage(meta, sc));
     const base = model.plain ? (model.filename || 'uml') : model.require ? `${who.no}-${slug(who.name)}-${model.filename || 'uml'}` : `${model.filename || 'uml'}-${slug(who.name)}`;
     try {
       const JsPDF = await loadLib();
